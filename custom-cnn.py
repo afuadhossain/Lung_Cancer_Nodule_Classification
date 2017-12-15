@@ -9,6 +9,10 @@ from keras.utils import plot_model
 WEIGHTS_FILEPATH = 'cnn.best.weights.hdf5'
 OUTPUT_PATH = 'cnn.model.hdf5'
 
+
+INPUT_TRAIN_FOLDER = './patches/subset0'
+INPUT_VALID_FOLDER = './patches/subset0'
+
 def buildmodel():
 
 	'''
@@ -99,26 +103,51 @@ def buildmodel():
 	return model
 	#plot_model(model, to_file='model.png', show_shapes = True, show_layer_names = False)
 
+def generate_images():
+	#the split is performed beforehand
+	train_datagen = ImageDataGenerator()
+	valid_datagen = ImageDataGenerator()
 
-def train_model(model, X_train, Y_train):
+	train_generator = train_datagen.flow_from_directory(
+        INPUT_TRAIN_FOLDER,
+        target_size=(152,152),
+        batch_size=32,
+        classes=['benign','cancer']
+        class_mode='binary')
+
+	valid_generator = test_datagen.flow_from_directory(
+        INPUT_VALID_FOLDER,
+        target_size=(152,152),
+        batch_size=32,
+        classes=['benign','cancer']
+        class_mode='binary')
+
+
+
+	return train_generator, valid_generator
+
+
+def train_model(model):
 
 	#Model parameters
 	batch_size = 32
 	num_epochs = 100
-	valid_split = 0.3
-
 
 	checkpoint = ModelCheckpoint(weights_filepath, monitor='val_acc', verbose=1, save_best_only=True, mode='max')
 	
 	stopping = EarlyStopping(monitor='val_acc', min_delta=0.0007, patience=10, verbose=1, mode='auto')
 	
-	callbacks_list = [checkpoint]
+	callbacks_list = [checkpoint, stopping]
 
 	print("Training CNN")
 
-	model.fit(X_train, Y_train,                # Train the model using the training set...
-			  batch_size=batch_size, epochs=num_epochs,
-			  verbose=1,callbacks = callbacks_list, validation_split=valid_split) # ...holding out 10% of the data for validation
+	train_generator, valid_generator = generate_images()
+
+
+	model.fit_generator( train_generator,
+		batch_size=batch_size, epochs=num_epochs,
+		validation_data= valid_generator,
+		verbose=1,callbacks = callbacks_list)
 
 	#save the model
 
