@@ -4,14 +4,14 @@ from keras.layers import Input, Conv2D, MaxPooling2D, Dense, Dropout, Activation
 from keras.utils import np_utils, plot_model # utilities for one-hot encoding of ground truth values
 from keras.callbacks import ModelCheckpoint,EarlyStopping
 from keras.utils import plot_model
-
+from keras.preprocessing.image import ImageDataGenerator
 
 WEIGHTS_FILEPATH = 'cnn.best.weights.hdf5'
 OUTPUT_PATH = 'cnn.model.hdf5'
 
 
-INPUT_TRAIN_FOLDER = './patches/subset0'
-INPUT_VALID_FOLDER = './patches/subset0'
+INPUT_TRAIN_FOLDER = './images/train/'
+INPUT_VALID_FOLDER = './images/valid/'
 
 def buildmodel():
 
@@ -21,7 +21,7 @@ def buildmodel():
 
 
 	'''
-	batch_size = 10 #tbd
+	#batch_size = 10 #tbd
 
 
 	DATA_SIZE = (512,512, 1)
@@ -71,9 +71,12 @@ def buildmodel():
 
 	drop_3 = Dropout(0.5)
 
+	flat = Flatten()
+	fc_layer_1 = Dense(32, activation='relu')
+	out = Dense(1, activation='softmax')
+	
 	#Fully connected layer with softmax
-
-	fc_layer = Dense(2, activation = 'softmax')
+	#fc_layer = Dense(1, activation = 'softmax')
 
 	model = Sequential()
 	model.add(zeropadding_1)
@@ -94,14 +97,18 @@ def buildmodel():
 	model.add(pool_3)
 	model.add(drop_3)
 
-	model.add(fc_layer)
+	model.add(flat)
+	model.add(fc_layer_1)
+	model.add(out)
 
-	model.compile(loss='categorical_crossentropy', # using the cross-entropy loss function
+	#model.add(fc_layer)
+
+	model.compile(loss='binary_crossentropy', # using the cross-entropy loss function
 				  optimizer='adam', # using the Adam optimiser
 				  metrics=['accuracy']) # reporting the accuracy
-
+	plot_model(model, to_file='model.png', show_shapes = True, show_layer_names = False)
 	return model
-	#plot_model(model, to_file='model.png', show_shapes = True, show_layer_names = False)
+	
 
 def generate_images():
 	#the split is performed beforehand
@@ -110,16 +117,18 @@ def generate_images():
 
 	train_generator = train_datagen.flow_from_directory(
         INPUT_TRAIN_FOLDER,
-        target_size=(152,152),
+        target_size=(512,512),
         batch_size=32,
-        classes=['benign','cancer']
+        classes=['benign','cancer'],
+        color_mode='grayscale',
         class_mode='binary')
 
-	valid_generator = test_datagen.flow_from_directory(
+	valid_generator = valid_datagen.flow_from_directory(
         INPUT_VALID_FOLDER,
-        target_size=(152,152),
+        target_size=(512,512),
         batch_size=32,
-        classes=['benign','cancer']
+        classes=['benign','cancer'],
+        color_mode='grayscale',
         class_mode='binary')
 
 
@@ -132,26 +141,31 @@ def train_model(model):
 	#Model parameters
 	batch_size = 32
 	num_epochs = 100
+	nb_train_samples = 64
+	nb_valid_samples = 120
 
-	checkpoint = ModelCheckpoint(weights_filepath, monitor='val_acc', verbose=1, save_best_only=True, mode='max')
+	#checkpoint = ModelCheckpoint(WEIGHTS_FILEPATH, monitor='val_acc', verbose=1, save_best_only=True, mode='max')
 	
-	stopping = EarlyStopping(monitor='val_acc', min_delta=0.0007, patience=10, verbose=1, mode='auto')
+	#stopping = EarlyStopping(monitor='val_acc', min_delta=0.0007, patience=10, verbose=1, mode='auto')
 	
-	callbacks_list = [checkpoint, stopping]
+	#callbacks_list = [checkpoint]
 
 	print("Training CNN")
 
 	train_generator, valid_generator = generate_images()
 
 
-	model.fit_generator( train_generator,
-		batch_size=batch_size, epochs=num_epochs,
+	model.fit_generator( train_generator, epochs=num_epochs,
 		validation_data= valid_generator,
-		verbose=1,callbacks = callbacks_list)
+		steps_per_epoch = nb_train_samples // batch_size,
+		validation_steps = nb_valid_samples // batch_size,
+		verbose=1
+		#callbacks = callbacks_list
+		)
 
 	#save the model
 
-	model.save(output_path)
+	model.save(OUTPUT_PATH)
 
 	print("Model trained and saved as {}".format(output_path))
 
@@ -161,7 +175,7 @@ def train_model(model):
 def main():
 	my_model = buildmodel()
 
-	train_model(my_model)
+	#train_model(my_model)
 
 
 if __name__ == '__main__':

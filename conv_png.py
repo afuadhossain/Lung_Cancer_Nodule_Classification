@@ -4,6 +4,7 @@ import numpy as np
 import os
 from PIL import Image
 import matplotlib.pyplot as plt
+import winsound
 
 
 
@@ -16,6 +17,12 @@ for index in range(numpyImage.shape[0]):
 	Image.fromarray(numpyImage[index]).convert('L').save(str(index) + '.png')
 	
 '''
+
+def Alarm():
+	#plays a sound when script ends
+	duration = 1000  # millisecond
+	freq = 440  # Hz
+	winsound.Beep(freq, duration)
 
 #Returns all .mhd file path in a list
 def list_files(directory):
@@ -63,9 +70,22 @@ def normalizePlanes(npzarray):
 
 
 def main():
-	subset = 'subset0/'
+	#subset to convert
+	subset = 'testset/'
+
+
 	directory_path = './data/' + subset  # path for mhd file
 	mhd_list = list_files(directory= directory_path)
+
+	#create the subset directory
+	os.mkdir('./patches/' + subset)
+
+	outputDir = './patches/' + subset + 'benign/'
+	os.mkdir(outputDir)
+
+	outputDir_cancer = './patches/' + subset + 'cancer/'
+	os.mkdir(outputDir_cancer)	
+
 
 	for mhd_file in mhd_list:
 		img_path = mhd_file
@@ -82,7 +102,11 @@ def main():
 			# get candidates
 			# Extract and visualize patch for each candidate in the list
 			if cand[0] == img_path.replace(".mhd","").replace(directory_path, ""):
-				print('matched candidate and path')
+
+				label = cand[4]
+
+				print('matched candidate and path. Label = {}'.format(label))
+
 				worldCoord = np.asarray([float(cand[3]), float(cand[2]), float(cand[1])])
 				voxelCoord = worldToVoxelCoord(worldCoord, numpyOrigin, numpySpacing)
 				
@@ -105,17 +129,27 @@ def main():
 
 				patch = normalizePlanes(patch)
 
-				outputDir = './patches/' + subset
+
 				#plt.imshow(patch, cmap='gray')
 				#plt.show()
 				#save the file as png format
-				Image.fromarray(patch * 255).convert('L').save(os.path.join(outputDir,
+
+				if (label == 1):	#if label = 1, nodule is cancerous. Save to cancerous folder
+					Image.fromarray(patch * 255).convert('L').save(os.path.join(outputDir_cancer,
 																			'patch_' + str(worldCoord[0]) + '_' + str(
 																				worldCoord[1]) + '_' + str(
 																				worldCoord[2]) + '.png'))
-				print('File Saved')
+					print('File Saved as 1')
+				else:				#if label = 0, nodule is benign. Save to benign folder
+					Image.fromarray(patch * 255).convert('L').save(os.path.join(outputDir,
+																				'patch_' + str(worldCoord[0]) + '_' + str(
+																					worldCoord[1]) + '_' + str(
+																					worldCoord[2]) + '.png'))
+					print('File Saved as 0')
 
 	print('All files save in ' + outputDir)
+	Alarm()
+
 
 main()
 
