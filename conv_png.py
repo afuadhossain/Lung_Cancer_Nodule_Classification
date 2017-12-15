@@ -71,7 +71,8 @@ def normalizePlanes(npzarray):
 
 def main():
 	#subset to convert
-	subset = 'testset/'
+	s_number = 9
+	subset = 'subset' + str(s_number) + '/'
 
 
 	directory_path = './data/' + subset  # path for mhd file
@@ -104,6 +105,7 @@ def main():
 			if cand[0] == img_path.replace(".mhd","").replace(directory_path, ""):
 
 				label = cand[4]
+				print(label)
 
 				print('matched candidate and path. Label = {}'.format(label))
 
@@ -134,15 +136,15 @@ def main():
 				#plt.show()
 				#save the file as png format
 
-				if (label == 1):	#if label = 1, nodule is cancerous. Save to cancerous folder
+				if (label == '1'):	#if label = 1, nodule is cancerous. Save to cancerous folder
 					Image.fromarray(patch * 255).convert('L').save(os.path.join(outputDir_cancer,
-																			'patch_' + str(worldCoord[0]) + '_' + str(
+																				str(s_number) +'_patch_' + str(worldCoord[0]) + '_' + str(
 																				worldCoord[1]) + '_' + str(
-																				worldCoord[2]) + '.png'))
+																				worldCoord[2]) + '_C.png'))
 					print('File Saved as 1')
 				else:				#if label = 0, nodule is benign. Save to benign folder
 					Image.fromarray(patch * 255).convert('L').save(os.path.join(outputDir,
-																				'patch_' + str(worldCoord[0]) + '_' + str(
+																				str(s_number) +'_patch_' + str(worldCoord[0]) + '_' + str(
 																					worldCoord[1]) + '_' + str(
 																					worldCoord[2]) + '.png'))
 					print('File Saved as 0')

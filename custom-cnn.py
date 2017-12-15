@@ -5,13 +5,27 @@ from keras.utils import np_utils, plot_model # utilities for one-hot encoding of
 from keras.callbacks import ModelCheckpoint,EarlyStopping
 from keras.utils import plot_model
 from keras.preprocessing.image import ImageDataGenerator
+import numpy as np
+import pprint
+from sklearn.metrics import confusion_matrix
 
+#Where to save the weights and model
 WEIGHTS_FILEPATH = 'cnn.best.weights.hdf5'
 OUTPUT_PATH = 'cnn.model.hdf5'
 
 
+#Input folders
 INPUT_TRAIN_FOLDER = './images/train/'
 INPUT_VALID_FOLDER = './images/valid/'
+INPUT_TEST_FOLDER = './images/valid/'
+
+#Testing
+#Load the weights file
+TESTING_WEIGHTS_PATH = 'cnn.best.weights.hdf5'
+#Destination of predictions
+TESTING_RESULTS_PATH = 'test-s9.csv'
+
+
 
 def buildmodel():
 
@@ -73,7 +87,7 @@ def buildmodel():
 
 	flat = Flatten()
 	fc_layer_1 = Dense(32, activation='relu')
-	out = Dense(1, activation='softmax')
+	out = Dense(1, activation='sigmoid')
 	
 	#Fully connected layer with softmax
 	#fc_layer = Dense(1, activation = 'softmax')
@@ -115,10 +129,11 @@ def generate_images():
 	train_datagen = ImageDataGenerator()
 	valid_datagen = ImageDataGenerator()
 
+
 	train_generator = train_datagen.flow_from_directory(
         INPUT_TRAIN_FOLDER,
         target_size=(512,512),
-        batch_size=32,
+        batch_size=1,
         classes=['benign','cancer'],
         color_mode='grayscale',
         class_mode='binary')
@@ -126,12 +141,10 @@ def generate_images():
 	valid_generator = valid_datagen.flow_from_directory(
         INPUT_VALID_FOLDER,
         target_size=(512,512),
-        batch_size=32,
+        batch_size=1,
         classes=['benign','cancer'],
         color_mode='grayscale',
         class_mode='binary')
-
-
 
 	return train_generator, valid_generator
 
@@ -139,16 +152,16 @@ def generate_images():
 def train_model(model):
 
 	#Model parameters
-	batch_size = 32
+	batch_size = 25
 	num_epochs = 100
-	nb_train_samples = 64
-	nb_valid_samples = 120
+	nb_train_samples = 330722
+	nb_valid_samples = 163243
 
-	#checkpoint = ModelCheckpoint(WEIGHTS_FILEPATH, monitor='val_acc', verbose=1, save_best_only=True, mode='max')
+	checkpoint = ModelCheckpoint(WEIGHTS_FILEPATH, monitor='val_acc', verbose=1, save_best_only=True, mode='max')
 	
-	#stopping = EarlyStopping(monitor='val_acc', min_delta=0.0007, patience=10, verbose=1, mode='auto')
+	stopping = EarlyStopping(monitor='val_acc', min_delta=0.0007, patience=10, verbose=1, mode='auto')
 	
-	#callbacks_list = [checkpoint]
+	callbacks_list = [checkpoint, stopping]
 
 	print("Training CNN")
 
@@ -159,8 +172,8 @@ def train_model(model):
 		validation_data= valid_generator,
 		steps_per_epoch = nb_train_samples // batch_size,
 		validation_steps = nb_valid_samples // batch_size,
-		verbose=1
-		#callbacks = callbacks_list
+		verbose=1,
+		callbacks = callbacks_list
 		)
 
 	#save the model
@@ -169,13 +182,46 @@ def train_model(model):
 
 	print("Model trained and saved as {}".format(output_path))
 
+#Use existing weights to predict model
+def predict_model(model):
+
+	nb_test_samples = 163243
+	batch_size = 6
+
+	test_datagen = ImageDataGenerator()
+	test_generator = test_datagen.flow_from_directory(
+        INPUT_TEST_FOLDER,
+        target_size=(512,512),
+        batch_size=batch_size,
+        classes=['benign','cancer'],
+        color_mode='grayscale',
+        class_mode='binary',
+        shuffle=False)	
+
+	true_classes = test_generator.classes
+
+	
+	model.load_weights(TESTING_WEIGHTS_PATH)
+
+	nb_steps = nb_test_samples//batch_size
+	predicted_classes = model.predict_generator(test_generator, steps= nb_steps, verbose = 1)
+
+	predicted_classes = list(map(lambda x: int(x), predicted_classes))
+
+	#save the results
+	print(predicted_classes)
+	np.savetxt(TESTING_RESULTS_PATH, predicted_classes, delimiter=",", fmt='%d')
+	print(confusion_matrix(true_classes, predicted_classes, labels=[0,1]))
+
+	
 
 
 
 def main():
 	my_model = buildmodel()
 
-	train_model(my_model)
+	#train_model(my_model)
+	predict_model(my_model)
 
 
 if __name__ == '__main__':
