@@ -9,4 +9,10 @@ Your directory should contain:
 
 	/images/		: Contains images partitioned for train/valid/test
 		
-	/patches/		: Contains unzipped .MHD files
+	/patches/		: Contains preprocessed .png
+
+	conv_png.py		: Reads .mhd and converts to .png
+
+	custom-cnn.py		: Custom CNN
+
+	cnn.best.weights.hdf5	: Weights for Test set
