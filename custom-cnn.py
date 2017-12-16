@@ -17,7 +17,7 @@ OUTPUT_PATH = 'cnn.model.hdf5'
 #Input folders
 INPUT_TRAIN_FOLDER = './images/train/'
 INPUT_VALID_FOLDER = './images/valid/'
-INPUT_TEST_FOLDER = './images/valid/'
+INPUT_TEST_FOLDER = './images/test/'
 
 #Testing
 #Load the weights file
@@ -120,7 +120,7 @@ def buildmodel():
 	model.compile(loss='binary_crossentropy', # using the cross-entropy loss function
 				  optimizer='adam', # using the Adam optimiser
 				  metrics=['accuracy']) # reporting the accuracy
-	#plot_model(model, to_file='model.png', show_shapes = True, show_layer_names = False)
+	plot_model(model, to_file='model.png', show_shapes = True, show_layer_names = False)
 	return model
 	
 
@@ -221,7 +221,7 @@ def main():
 	my_model = buildmodel()
 
 	#train_model(my_model)
-	predict_model(my_model)
+	#predict_model(my_model)
 
 
 if __name__ == '__main__':
